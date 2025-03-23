@@ -9,6 +9,7 @@ function App() {
   const [volume, setVolume] = useState(50);
   const audioRef = useRef(new Audio());
 
+  // Fetch Songs
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -24,17 +25,24 @@ function App() {
     fetchData();
   }, []);
 
+  // Load song source and start playback when index changes
   useEffect(() => {
     if (songs.length > 0) {
       audioRef.current.src = songs[currentSongIndex]?.songURL;
-      if (isPlaying) audioRef.current.play();
+      audioRef.current.load();
+      audioRef.current.play().catch((error) => {
+        console.error("Error playing audio:", error);
+      });
+      setIsPlaying(true);
     }
   }, [currentSongIndex, songs]);
 
+  // Update volume
   useEffect(() => {
     audioRef.current.volume = volume / 100;
   }, [volume]);
 
+  // Update seek bar and handle song end
   useEffect(() => {
     const updateSeek = () => {
       if (audioRef.current.duration) {
@@ -44,9 +52,8 @@ function App() {
       }
     };
 
-    // Play next song when current song ends
     const handleSongEnd = () => {
-      handleNext();
+      handleNext(); // Play next song when current song ends
     };
 
     audioRef.current.addEventListener("timeupdate", updateSeek);
@@ -58,6 +65,7 @@ function App() {
     };
   }, []);
 
+  // Play / Pause toggle
   const handlePlayPause = () => {
     if (isPlaying) {
       audioRef.current.pause();
@@ -67,18 +75,21 @@ function App() {
     setIsPlaying(!isPlaying);
   };
 
+  // Play next song
   const handleNext = () => {
     setCurrentSongIndex((prevIndex) =>
       prevIndex === songs.length - 1 ? 0 : prevIndex + 1
     );
   };
 
+  // Play previous song
   const handlePrev = () => {
     setCurrentSongIndex((prevIndex) =>
       prevIndex === 0 ? songs.length - 1 : prevIndex - 1
     );
   };
 
+  // Seek to specific time
   const handleSeek = (e) => {
     const newTime =
       (e.target.value / 100) * (audioRef.current.duration || 0);
@@ -99,7 +110,13 @@ function App() {
           <div
             key={song._id}
             className="border rounded-lg p-3 bg-gray-800 hover:bg-gray-700 cursor-pointer"
-            onClick={() => setCurrentSongIndex(index)}
+            onClick={() => {
+              setCurrentSongIndex(index);
+              setTimeout(() => {
+                audioRef.current.play();
+                setIsPlaying(true);
+              }, 0);
+            }}
           >
             <img
               src={song.songAvatarURL}
@@ -143,10 +160,8 @@ function App() {
 
           {/* Center - Controls */}
           <div className="flex items-center gap-5">
-            <button className="w-[10px]" onClick={handlePrev}>
-              ⏮️
-            </button>
-            <button className="w-[10px]" onClick={handlePlayPause}>
+            <button onClick={handlePrev}>⏮️</button>
+            <button onClick={handlePlayPause}>
               {isPlaying ? "⏸️" : "▶️"}
             </button>
             <button onClick={handleNext}>⏭️</button>
